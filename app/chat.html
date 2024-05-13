@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/chat.css">
+    <script src="/js/client.js"></script> 
+    <title>Chat App</title>
+    <style>
+        
+    </style>
+</head>
+
+<body>
+    <div class="chat-container">
+        <div class="sidebar">
+            <button class="add-conversation-btn" onclick="addConversation()">+ Add Conversation</button>
+            <ul class="conversation-list" id="conversation-list">
+                <!-- Conversation list will be populated here -->
+            </ul>
+        </div>
+        <div class="chat-area">
+            <div class="chat-messages" id="chat-messages">
+                <!-- Chat messages will be displayed here -->
+            </div>
+            <div class="chat-form">
+                <input type="text" class="chat-input" id="message-input" placeholder="Type a message...">
+                <button class="chat-btn" onclick="client.sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Conversation Form (Hidden by default) -->
+    <div id="new-conversation-form" style="display: none;">
+        <h3>Add New Conversation</h3>
+        <input type="text" id="new-conversation-input" placeholder="Enter a username...">
+        <button onclick="createNewConversation()">Create</button>
+    </div>
+
+    <script>
+        // JavaScript code remains the same
+    </script>
+</body>
+
+</html>
