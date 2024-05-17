@@ -15,7 +15,7 @@ class ChatAppAPI {
     async login(username, password) {
         try {
             const connection = await this.getConnection();
-
+            
             // console.log("start");
             const usernameQuery = 'SELECT * FROM Users WHERE username = (?)';
             const users = await this.query(connection, usernameQuery, [username]);
