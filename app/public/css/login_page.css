@@ -69,3 +69,7 @@ body {
     color: #000000;
     font-size: small;
   }
+
+  .error-message.hidden{
+    visibility: hidden;
+  }

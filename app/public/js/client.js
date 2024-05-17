@@ -27,6 +27,26 @@ class Client {
             });
     }
 
+    constructor() {
+        this.displayMessageIfError();
+    }
+
+    displayMessageIfError() {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('error')) {
+            console.log("invalid username or password");
+            var errorEl = document.getElementsByClassName("error-message")[0];
+            console.log(errorEl);
+            errorEl.classList.remove('hidden');
+            window.history.pushState({}, document.title, "/");
+        }
+    }
+
+    clearError() {
+        var errorEl = document.getElementsByClassName("error-message")[0];
+        errorEl.classList.add('hidden');
+    }
+
     sendMessage(message) {
         let options = {
             method: "post",

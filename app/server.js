@@ -16,9 +16,12 @@ app.get('/', (req, res) => {
 
 app.post('/login', (req, res) => {
     chat.login(req.body.username, req.body.password).then(userid => {
-        // res.send({ 'userid': userid });
-        // res.end();
-        res.redirect(`/userPage/${userid}`)
+        if (userid) {
+            res.redirect(`/userPage/${userid}`)
+        } else {
+            res.status(401);
+            res.redirect('/?error=1');
+        }
     });
 });
 
