@@ -67,9 +67,9 @@
         </div>
     </div>
     <div id="chat-container" style="border:1px solid red;">
-        <% messages.forEach(message => { %>
-            <div class="message">
-                <li><a href="/conversation/<%= message %>"><%= message %></a></li>
+        <% convos.forEach(convo => { %>
+            <div class="convo">
+                <li><a href="/conversation/<%= convo.ConversationID %>"><%= convo.Username %></a></li>
             </div>
         <% }); %>
 

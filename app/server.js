@@ -40,12 +40,12 @@ app.get('/userPage/:userId', (req, res)=> {
        chat.getAllConversationsForUser(req.params.userId).then(conversations =>{
         
         let allConvos = JSON.parse(JSON.stringify(conversations))
-        let allConvosID = []
-        allConvos.forEach(conversation => {
-            allConvosID.push(conversation.ConversationID)
-        }); 
-        console.log(allConvosID)
-        ejs.renderFile(__dirname + '/user_page.ejs', { messages: allConvosID }, (err, html) => {
+        // let allConvosID = []
+        // allConvos.forEach(conversation => {
+        //     allConvosID.push(conversation.ConversationID)
+        // }); 
+        console.log(allConvos)
+        ejs.renderFile(__dirname + '/user_page.ejs', { convos: allConvos }, (err, html) => {
             if (err) {
                 console.error('Error rendering template:', err);
                 res.status(500).send('Internal Server Error');

@@ -52,6 +52,7 @@ class ChatAppAPI {
         }
     }
 
+
     async getAllUsers() {
         try {
             const connection = await this.getConnection();
@@ -156,8 +157,16 @@ class ChatAppAPI {
     async getAllConversationsForUser(userID) {
         try {
             const connection = await this.getConnection();
-            const query = 'SELECT Conversations.* FROM Conversations INNER JOIN User_Conversation ON Conversations.ConversationID = User_Conversation.ConversationID WHERE User_Conversation.UserID = ?';
-            const conversations = await this.query(connection, query, [userID]);
+            // const query = 'SELECT Conversations.* FROM Conversations INNER JOIN User_Conversation ON Conversations.ConversationID = User_Conversation.ConversationID WHERE User_Conversation.UserID = ?';
+            const query =  `SELECT U.Username, UC.UserID, UC.ConversationID FROM User_Conversation UC 
+                            INNER JOIN Users U Using (UserID)
+                            WHERE ConversationID IN 
+                                (SELECT ConversationID 
+                                 FROM User_Conversation 
+                                 WHERE UserID = (?)
+                                )
+                            AND UserID != (?);`;
+            const conversations = await this.query(connection, query, [userID, userID]);
             connection.release();
             return conversations;
         } catch (error) {
