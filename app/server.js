@@ -44,10 +44,12 @@ app.post('/createUser', (req, res) => {
 
 app.get('/userPage/:userId', (req, res) => {
     try {
-        if (req.params.userId != loggedInUserID) {
-            res.redirect('/?invalidRequest');
-            return;
-        }
+        // authenticate user:
+        // if (req.params.userId != loggedInUserID) {
+        //     res.redirect('/?invalidRequest');
+        //     return;
+        // }
+        
         // Fetch messages for the authenticated user from the database
         chat.getAllConversationsForUser(req.params.userId).then(conversations => {
             const allConvos = JSON.parse(JSON.stringify(conversations));
@@ -86,7 +88,7 @@ app.post('/addConvo/:userId', (req, res) => {
     })
 })
 
-app.post('/deleteUser/:userId', (req, res) => {
+app.post('/deleteConvo/:userId', (req, res) => {
     const UserId = req.params.userId;
     const conversationID = req.body.partnerId;
     chat.deleteConversation(conversationID).then(() => {
