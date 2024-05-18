@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversation <%= conversation.id %></title>
+    <link rel="stylesheet" href="/css/conversation_page.css">
+
+</head>
+<body>
+    <h1>Conversation <%= conversation[0].ConversationID %></h1>
+    <div id="messages">
+        <% conversation.forEach(message => { %>
+            <div class="message">
+                <p class="sender"><%= message.SenderID %>:</p>
+                <p class="content"><%= message.Content %></p>
+                <p class="timestamp"><%= new Date(message.SentAt).toLocaleString() %></p>
+            </div>
+        <% }) %>
+    </div>
+     <div class="send-message-form">
+        <h2>Send a Message</h2>
+        <form id="sendMessageForm" method="POST" action="/sendMessage/<%=conversation[0].ConversationID%>">
+            
+            <label for="Content">Message:</label>
+            <textarea id="Content" name="Content" required></textarea>
+            <button type="submit">Send</button>
+        </form>
+
+    <a id="BackToConvos" href="/userPage/">Back to conversations</a>
+    <script src="/js/conversation_page.js"></script>
+</body>
+</html>

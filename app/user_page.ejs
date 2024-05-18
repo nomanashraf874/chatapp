@@ -71,13 +71,14 @@
     <div id="chat-container" style="border:1px solid red;">
         <% convos.forEach(convo=> { %>
             <div class="convo">
-                <li><a href="/conversation/<%= convo.ConversationID %>">
+                <li><a class = 'conversations'href="/conversation/<%= convo.ConversationID %>">
                         <%= convo.Username %>
                     </a></li>
             </div>
             <% }); %>
 
     </div>
+    
 </body>
 
 </html>

@@ -2,13 +2,14 @@
 class UserPage {
     modal = document.getElementById("myModal");
     userID = window.location.pathname.split("/")[2];
-    
     constructor() {
         this.initialize();
     }
 
     initialize() {
         console.log(this.userID);
+        
+        
         const closeButton = document.getElementsByClassName("close")[0];
         closeButton.onclick = function () {
             this.modal.style.display = "none";
@@ -37,6 +38,8 @@ class UserPage {
         const modalForm = document.getElementById('addConversation');
         modalForm.action = `/${modalAction}/${this.userID}`;
     }
+    
 }
 
 const userPage = new UserPage();
+
