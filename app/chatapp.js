@@ -158,14 +158,35 @@ class ChatAppAPI {
         try {
             const connection = await this.getConnection();
             // const query = 'SELECT Conversations.* FROM Conversations INNER JOIN User_Conversation ON Conversations.ConversationID = User_Conversation.ConversationID WHERE User_Conversation.UserID = ?';
-            const query =  `SELECT U.Username, UC.UserID, UC.ConversationID FROM User_Conversation UC 
-                            INNER JOIN Users U Using (UserID)
-                            WHERE ConversationID IN 
-                                (SELECT ConversationID 
-                                 FROM User_Conversation 
-                                 WHERE UserID = (?)
-                                )
-                            AND UserID != (?);`;
+            // const query =  `SELECT U.Username, UC.UserID, UC.ConversationID FROM User_Conversation UC 
+            //                 INNER JOIN Users U Using (UserID)
+            //                 WHERE ConversationID IN 
+            //                     (SELECT ConversationID 
+            //                      FROM User_Conversation 
+            //                      WHERE UserID = (?)
+            //                     )
+            //                 AND UserID != (?);`;
+            const query = 
+                `WITH LastSent as (
+                    SELECT MAX(sentAt) sentAt, conversationID 
+                    FROM Messages 
+                    GROUP BY conversationID
+                ),
+                LatestMessages as (
+                    SELECT M.content, LS.sentAt, M.conversationID, M.senderID 
+                    FROM Messages M 
+                    INNER JOIN LastSent LS 
+                    USING (sentAt, conversationID)
+                )
+                SELECT U.Username, UC.UserID, UC.ConversationID, LM.content lastSentMessage
+                FROM User_Conversation UC 
+                INNER JOIN Users U Using (UserID)
+                LEFT JOIN LatestMessages LM ON UC.ConversationID = LM.ConversationID
+                WHERE UC.ConversationID IN 
+                    (SELECT ConversationID 
+                    FROM User_Conversation 
+                    WHERE UserID = (?))
+                AND UserID != (?);`;
             const conversations = await this.query(connection, query, [userID, userID]);
             connection.release();
             return conversations;

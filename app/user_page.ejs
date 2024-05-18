@@ -71,11 +71,13 @@
     <div id="chat-container" style="border:1px solid red;">
         <% convos.forEach(convo=> { %>
             <div class="convo">
-                <li><a href="/conversation/<%= convo.ConversationID %>">
-                        <%= convo.Username %>
-                    </a></li>
+                <li>
+                    <a href="/conversation/<%= convo.ConversationID %>">
+                        <%= convo.Username %> : &emsp; <%= convo.lastSentMessage %>
+                    </a>
+                </li>
             </div>
-            <% }); %>
+        <% }); %>
 
     </div>
 </body>
