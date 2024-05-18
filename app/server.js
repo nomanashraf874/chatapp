@@ -35,35 +35,35 @@ app.post('/login', (req, res) => {
 app.get('/create_user.html', (req, res) => {
     // Serve the HTML file
     res.sendFile(__dirname + '/create_user.html');
-  });
+});
 
-app.post('/createUser', (req, res) =>{
+app.post('/createUser', (req, res) => {
     chat.createUser(req.body.username, req.body.email, req.body.password);
     res.redirect('/');
 });
-app.get('/userPage/:userId', (req, res)=> {
+
+app.get('/userPage/:userId', (req, res) => {
     try {
         if (req.params.userId != loggedInUserID) {
             res.redirect('/?invalidRequest');
             return;
-        } 
+        }
         // Fetch messages for the authenticated user from the database
-       chat.getAllConversationsForUser(req.params.userId).then(conversations =>{
-        
-        let allConvos = JSON.parse(JSON.stringify(conversations));
-        console.log(allConvos);
-        ejs.renderFile(__dirname + '/user_page.ejs', { convos: allConvos }, (err, html) => {
-            if (err) {
-                console.error('Error rendering template:', err);
-                res.status(500).send('Internal Server Error');
-            } else {
-                res.send(html);
-            }
-        });
-       })
-        
+        chat.getAllConversationsForUser(req.params.userId).then(conversations => {
+            const allConvos = JSON.parse(JSON.stringify(conversations));
+            console.log(allConvos);
+            ejs.renderFile(__dirname + '/user_page.ejs', { convos: allConvos }, (err, html) => {
+                if (err) {
+                    console.error('Error rendering template:', err);
+                    res.status(500).send('Internal Server Error');
+                } else {
+                    res.send(html);
+                }
+            });
+        })
+
         //Render the messages.ejs template with the fetched messages
-        
+
     } catch (err) {
         console.error('Error fetching messages:', err);
         res.status(500).send('Internal Server Error');
@@ -78,28 +78,30 @@ app.get('/conversation/:conversationId', (req, res) => {
     res.send(`Display full conversation for conversation ID: ${conversationId}`);
 });
 
-app.post('/addUser/:userId', (req, res)=>{
+app.post('/addConvo/:userId', (req, res) => {
     const UserId = req.params.userId;
     const partnerUserID = req.body.partnerId;
-    chat.addConversation(UserId, partnerUserID);
-    res.redirect(`/userPage/${UserId}`);
+    chat.addConversation(UserId, partnerUserID).then(() => {
+        res.redirect(`/userPage/${UserId}`);
+    })
 })
 
-app.post('/deleteUser/:userId', (req, res)=>{
+app.post('/deleteUser/:userId', (req, res) => {
     const UserId = req.params.userId;
     const conversationID = req.body.partnerId;
-    chat.deleteConversation(conversationID);
-    res.redirect(`/userPage/${UserId}`);
+    chat.deleteConversation(conversationID).then(() => {
+        res.redirect(`/userPage/${UserId}`);
+    })
 })
 
 app.post('/sendMessage', (req, res) => {
     chat.addMessage(req.body.conversationID, req.body.senderID, req.body.content).then(messageid => {
         if (messageid) {
             chat.getAllMessagesInConversation(1)
-            .then(allMessages => {
-                res.send({ 'messages': allMessages });
-                res.end();
-            });
+                .then(allMessages => {
+                    res.send({ 'messages': allMessages });
+                    res.end();
+                });
         } else {
             res.send({ 'messages': 'error' });
             res.end();
