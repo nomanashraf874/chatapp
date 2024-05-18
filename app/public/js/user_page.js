@@ -22,12 +22,12 @@ class UserPage {
         // Get the button that opens the add conversation modal and add a click event
         const addConversationModal = document.getElementById("addConversationModal");
         addConversationModal.onclick = function () {
-            this.openModal("Enter User ID of who you want to talk to", "addUser");
+            this.openModal("Enter User ID of who you want to talk to", "addConvo");
         }.bind(this);
         // Get the button that opens the delete conversation modal and add a click event
         const deleteConversationModal = document.getElementById("deleteConversationModal");
         deleteConversationModal.onclick = function () {
-            this.openModal("Enter Conversation ID to delete", "deleteUser");
+            this.openModal("Enter Conversation ID to delete", "deleteConvo");
         }.bind(this);
     }
 
