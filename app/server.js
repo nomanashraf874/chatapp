@@ -4,6 +4,7 @@ const chatapp = require('./chatapp');
 const ejs = require('ejs')
 const app = express();
 const chat = new chatapp();
+var loggedInUserID = -1;
 
 app.use(express.json());
 app.use(express.urlencoded()); // to support URL-encoded bodies
@@ -14,10 +15,16 @@ app.get('/', (req, res) => {
     res.sendFile(__dirname + '/login_page.html');
 });
 
+app.get('/logout', (req, res) => {
+    loggedInUserID = -1;
+    res.redirect('/');
+});
+
 app.post('/login', (req, res) => {
     chat.login(req.body.username, req.body.password).then(userid => {
+        loggedInUserID = userid;
         if (userid) {
-            res.redirect(`/userPage/${userid}`)
+            res.redirect(`/userPage/${userid}`);
         } else {
             res.status(401);
             res.redirect('/?error=1');
@@ -31,20 +38,20 @@ app.get('/create_user.html', (req, res) => {
   });
 
 app.post('/createUser', (req, res) =>{
-    chat.createUser(req.body.username, req.body.email, req.body.password)
-    res.redirect('/')
+    chat.createUser(req.body.username, req.body.email, req.body.password);
+    res.redirect('/');
 });
 app.get('/userPage/:userId', (req, res)=> {
     try {
+        if (req.params.userId != loggedInUserID) {
+            res.redirect('/?invalidRequest');
+            return;
+        } 
         // Fetch messages for the authenticated user from the database
        chat.getAllConversationsForUser(req.params.userId).then(conversations =>{
         
-        let allConvos = JSON.parse(JSON.stringify(conversations))
-        // let allConvosID = []
-        // allConvos.forEach(conversation => {
-        //     allConvosID.push(conversation.ConversationID)
-        // }); 
-        console.log(allConvos)
+        let allConvos = JSON.parse(JSON.stringify(conversations));
+        console.log(allConvos);
         ejs.renderFile(__dirname + '/user_page.ejs', { convos: allConvos }, (err, html) => {
             if (err) {
                 console.error('Error rendering template:', err);
@@ -72,17 +79,17 @@ app.get('/conversation/:conversationId', (req, res) => {
 });
 
 app.post('/addUser/:userId', (req, res)=>{
-    const UserId = req.params.userId
-    const partnerUserID = req.body.partnerId
-    chat.addConversation(UserId, partnerUserID)
-    res.redirect(`/userPage/${UserId}`)
+    const UserId = req.params.userId;
+    const partnerUserID = req.body.partnerId;
+    chat.addConversation(UserId, partnerUserID);
+    res.redirect(`/userPage/${UserId}`);
 })
 
 app.post('/deleteUser/:userId', (req, res)=>{
-    const UserId = req.params.userId
-    const conversationID = req.body.partnerId
-    chat.deleteConversation(conversationID)
-    res.redirect(`/userPage/${UserId}`)
+    const UserId = req.params.userId;
+    const conversationID = req.body.partnerId;
+    chat.deleteConversation(conversationID);
+    res.redirect(`/userPage/${UserId}`);
 })
 
 app.post('/sendMessage', (req, res) => {
