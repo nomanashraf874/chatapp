@@ -144,7 +144,7 @@ class ChatAppAPI {
     async getAllMessagesInConversation(conversationID) {
         try {
             const connection = await this.getConnection();
-            const query = 'SELECT * FROM Messages WHERE conversationID = ?';
+            const query = 'SELECT * FROM Messages WHERE conversationID = (?) ORDER BY SentAt';
             const messages = await this.query(connection, query, [conversationID]);
             connection.release();
             return messages;
