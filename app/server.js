@@ -45,22 +45,25 @@ app.post('/createUser', (req, res) => {
 app.get('/userPage/:userId', (req, res) => {
     try {
         // authenticate user:
-        // if (req.params.userId != loggedInUserID) {
-        //     res.redirect('/?invalidRequest');
-        //     return;
-        // }
-        
+        if (req.params.userId != loggedInUserID) {
+            res.redirect('/?invalidRequest');
+            return;
+        }
+
         // Fetch messages for the authenticated user from the database
         chat.getAllConversationsForUser(req.params.userId).then(conversations => {
             const allConvos = JSON.parse(JSON.stringify(conversations));
-            console.log(allConvos);
-            ejs.renderFile(__dirname + '/user_page.ejs', { convos: allConvos }, (err, html) => {
-                if (err) {
-                    console.error('Error rendering template:', err);
-                    res.status(500).send('Internal Server Error');
-                } else {
-                    res.send(html);
-                }
+            // console.log(allConvos);
+            chat.getAllOtherUsers(loggedInUserID).then(otherUsers => {
+                console.log(loggedInUserID);
+                ejs.renderFile(__dirname + '/user_page.ejs', { convos: allConvos, users: otherUsers }, (err, html) => {
+                    if (err) {
+                        console.error('Error rendering template:', err);
+                        res.status(500).send('Internal Server Error');
+                    } else {
+                        res.send(html);
+                    }
+                });
             });
         })
 
@@ -83,8 +86,14 @@ app.get('/conversation/:conversationId', (req, res) => {
 app.post('/addConvo/:userId', (req, res) => {
     const UserId = req.params.userId;
     const partnerUserID = req.body.partnerId;
-    chat.addConversation(UserId, partnerUserID).then(() => {
-        res.redirect(`/userPage/${UserId}`);
+    chat.hasConversationWith(UserId, partnerUserID).then(convoId => {
+        if (convoId.length > 0) {
+            res.redirect(`/conversation/${convoId[0].ConversationID}`);
+        } else {
+            chat.addConversation(UserId, partnerUserID).then(() => {
+                res.redirect(`/userPage/${UserId}`);
+            });
+        }
     })
 })
 
@@ -93,7 +102,7 @@ app.post('/deleteConvo/:userId', (req, res) => {
     const conversationID = req.body.partnerId;
     chat.deleteConversation(conversationID).then(() => {
         res.redirect(`/userPage/${UserId}`);
-    })
+    });
 })
 
 app.post('/sendMessage', (req, res) => {

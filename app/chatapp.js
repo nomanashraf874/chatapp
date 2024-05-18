@@ -15,14 +15,14 @@ class ChatAppAPI {
     async login(username, password) {
         try {
             const connection = await this.getConnection();
-            
+
             // console.log("start");
             const usernameQuery = 'SELECT * FROM Users WHERE username = (?)';
             const users = await this.query(connection, usernameQuery, [username]);
             if (users.length == 0) {
                 console.log("Login failed. Invalid username:")
                 return null;
-            } 
+            }
 
             const passwordQuery = 'SELECT * FROM Users WHERE password = (?)';
             const pass = await this.query(connection, passwordQuery, [password]);
@@ -52,12 +52,11 @@ class ChatAppAPI {
         }
     }
 
-
-    async getAllUsers() {
+    async getAllOtherUsers(userId) {
         try {
             const connection = await this.getConnection();
-            const query = 'SELECT * FROM Users';
-            const users = await this.query(connection, query);
+            const query = 'SELECT UserID, Username FROM Users WHERE UserID != (?)';
+            const users = await this.query(connection, query, [userId]);
             connection.release();
             return users;
         } catch (error) {
@@ -141,6 +140,25 @@ class ChatAppAPI {
         }
     }
 
+    async hasConversationWith(userID, partnerId) {
+        try {
+            const connection = await this.getConnection();
+            const query = `
+                SELECT UC.ConversationID
+                FROM User_Conversation UC
+                WHERE UC.UserID = (?)
+                AND UC.ConversationID IN
+                   (SELECT UC.ConversationID
+                    FROM User_Conversation UC
+                    WHERE UC.UserID = (?));`
+            const result = await this.query(connection, query, [userID, partnerId]);
+            connection.release();
+            return result;
+        } catch (error) {
+            console.error("Error adding message:", error);
+        }
+    }
+
     async getAllMessagesInConversation(conversationID) {
         try {
             const connection = await this.getConnection();
@@ -166,7 +184,7 @@ class ChatAppAPI {
             //                      WHERE UserID = (?)
             //                     )
             //                 AND UserID != (?);`;
-            const query = 
+            const query =
                 `WITH LastSent as (
                     SELECT MAX(sentAt) sentAt, conversationID 
                     FROM Messages 

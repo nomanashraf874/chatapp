@@ -61,7 +61,14 @@
             <form id="addConversation" method="post" action="/">
                 <div class="form-group">
                     <label for="messageTitle" id="labelForConversation">Title</label>
-                    <input type="text" id="messageTitle" name="partnerId" required>
+                    <select id="messageTitle" name="partnerId" required>
+                        <% users.forEach(user=> { %>
+                            <option value= <%= user.UserID %> >
+                                <%= user.Username %>
+                            </option>
+                        <% }); %>
+                    </select>
+                    <!-- <input type="text" id="messageTitle" name="partnerId" required> -->
                 </div>
 
                 <button type="submit">Submit</button>
