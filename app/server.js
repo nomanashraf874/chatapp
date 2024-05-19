@@ -6,7 +6,7 @@ const app = express();
 const chat = new chatapp();
 
 app.use(express.json());
-app.use(express.urlencoded()); // to support URL-encoded bodies
+app.use(express.urlencoded({ extended: true })); // to support URL-encoded bodies
 
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
@@ -25,7 +25,7 @@ app.post('/login', (req, res) => {
     chat.login(req.body.username, req.body.password).then(userid => {
         loggedInUserID = userid;
         if (userid) {
-            res.redirect(`/userPage/${userid}`)
+            res.redirect(`/userPage`)
         } else {
             res.status(401);
             res.redirect('/?error=1');
@@ -43,16 +43,13 @@ app.post('/createUser', (req, res) => {
     chat.createUser(req.body.username, req.body.email, req.body.password);
     res.redirect('/');
 });
-app.get('/userPage/:userId', (req, res)=> {
+app.get('/userPage', (req, res)=> {
     try {
         // authenticate user:
-        if (req.params.userId != loggedInUserID) {
-            res.redirect('/?invalidRequest');
-            return;
-        }
+        const userId = loggedInUserID;
 
         // Fetch messages for the authenticated user from the database
-        chat.getAllConversationsForUser(req.params.userId).then(conversations => {
+        chat.getAllConversationsForUser(userId).then(conversations => {
             const allConvos = JSON.parse(JSON.stringify(conversations));
             // console.log(allConvos);
             chat.getAllOtherUsers(loggedInUserID).then(otherUsers => {
@@ -120,25 +117,25 @@ app.get('/conversation/:conversationId', (req, res) => {
     
 });
 
-app.post('/addConvo/:userId', (req, res) => {
-    const UserId = req.params.userId;
+app.post('/addConvo', (req, res) => {
+    const UserId = loggedInUserID;
     const partnerUserID = req.body.partnerId;
     chat.hasConversationWith(UserId, partnerUserID).then(convoId => {
         if (convoId.length > 0) {
             res.redirect(`/conversation/${convoId[0].ConversationID}`);
         } else {
             chat.addConversation(UserId, partnerUserID).then(() => {
-                res.redirect(`/userPage/${UserId}`);
+                res.redirect(`/userPage`);
             });
         }
     })
 })
 
-app.post('/deleteConvo/:userId', (req, res) => {
-    const UserId = req.params.userId;
+app.post('/deleteConvo', (req, res) => {
+    const UserId = loggedInUserID;
     const conversationID = req.body.partnerId;
     chat.deleteConversation(conversationID).then(() => {
-        res.redirect(`/userPage/${UserId}`);
+        res.redirect(`/userPage`);
     });
 })
 
