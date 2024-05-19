@@ -52,6 +52,19 @@ class ChatAppAPI {
         }
     }
 
+    async getAllUsers() {
+        try {
+            const connection = await this.getConnection();
+            const query = 'SELECT * FROM Users';
+            const users = await this.query(connection, query);
+            connection.release();
+            return users;
+        } catch (error) {
+            console.error("Error getting all users:", error);
+            return [];
+        }
+    }
+
     async getAllOtherUsers(userId) {
         try {
             const connection = await this.getConnection();
