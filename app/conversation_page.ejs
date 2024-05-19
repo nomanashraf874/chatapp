@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversation <%= conversation.id %></title>
+    <title>Conversation <%= conversationID %></title>
     <link rel="stylesheet" href="/css/conversation_page.css">
 
 </head>
 <body>
-    <h1>Conversation <%= conversation[0].ConversationID %></h1>
+    <h1> <% partner %></h1>
     <div id="messages">
-        <% conversation.forEach(message => { %>
+        <% messages.forEach(message => { %>
             <div class="message">
-                <p class="sender"><%= message.SenderID %>:</p>
+                <p class="sender"><%= message.SenderUsername %>:</p>
                 <p class="content"><%= message.Content %></p>
                 <p class="timestamp"><%= new Date(message.SentAt).toLocaleString() %></p>
             </div>
@@ -20,7 +20,7 @@
     </div>
      <div class="send-message-form">
         <h2>Send a Message</h2>
-        <form id="sendMessageForm" method="POST" action="/sendMessage/<%=conversation[0].ConversationID%>">
+        <form id="sendMessageForm" method="POST" action="/sendMessage/<%=conversationID%>">
             
             <label for="Content">Message:</label>
             <textarea id="Content" name="Content" required></textarea>

@@ -16,7 +16,6 @@ class ChatAppAPI {
         try {
             const connection = await this.getConnection();
 
-            // console.log("start");
             const usernameQuery = 'SELECT * FROM Users WHERE username = (?)';
             const users = await this.query(connection, usernameQuery, [username]);
             if (users.length == 0) {
@@ -175,7 +174,14 @@ class ChatAppAPI {
     async getAllMessagesInConversation(conversationID) {
         try {
             const connection = await this.getConnection();
-            const query = 'SELECT * FROM Messages WHERE conversationID = (?) ORDER BY SentAt';
+            // const query = 'SELECT * FROM Messages WHERE conversationID = (?) ORDER BY SentAt';
+            const query = `
+                SELECT M.*, U.Username SenderUsername
+                FROM Messages M
+                INNER JOIN Users U
+                ON M.SenderID = U.UserID
+                WHERE conversationID = (?) 
+                ORDER BY SentAt;`;
             const messages = await this.query(connection, query, [conversationID]);
             connection.release();
             return messages;

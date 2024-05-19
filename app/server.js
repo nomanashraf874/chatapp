@@ -4,6 +4,7 @@ const chatapp = require('./chatapp');
 const ejs = require('ejs')
 const app = express();
 const chat = new chatapp();
+var loggedInUserID = -1;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // to support URL-encoded bodies
@@ -12,7 +13,6 @@ app.use(express.static('public'));
 app.set('view engine', 'ejs');
 
 app.get('/', (req, res) => {
-    USERID = ""
     res.sendFile(__dirname + '/login_page.html');
 });
 
@@ -43,13 +43,15 @@ app.post('/createUser', (req, res) => {
     chat.createUser(req.body.username, req.body.email, req.body.password);
     res.redirect('/');
 });
-app.get('/userPage', (req, res)=> {
+app.get('/userPage', (req, res) => {
     try {
         // authenticate user:
-        const userId = loggedInUserID;
-
+        if (loggedInUserID < 0) {
+            res.redirect('/?invalidRequest');
+            return;
+        }
         // Fetch messages for the authenticated user from the database
-        chat.getAllConversationsForUser(userId).then(conversations => {
+        chat.getAllConversationsForUser(loggedInUserID).then(conversations => {
             const allConvos = JSON.parse(JSON.stringify(conversations));
             // console.log(allConvos);
             chat.getAllOtherUsers(loggedInUserID).then(otherUsers => {
@@ -75,25 +77,14 @@ app.get('/userPage', (req, res)=> {
 
 
 app.get('/conversation/:conversationId', (req, res) => {
-    const conversationId = req.params.conversationId;
+    const conversationID = req.params.conversationId;
     // Fetch conversation data based on conversationId
     // Render a page with the full conversation data
     //res.send(`Display full conversation for conversation ID: ${conversationId}`);
     try {
-    chat.getAllMessagesInConversation(conversationId).then(messages =>{
-        let allMessages = JSON.parse(JSON.stringify(messages));
-        chat.getAllUsers().then(users =>{
-            console.log(users)
-            let allUsers = JSON.parse(JSON.stringify(users));
-            const userMap = {};
-            allUsers.forEach(user => {
-                userMap[user.UserID] = user.Username;
-            });
-            allMessages.forEach(message=>{
-                message.SenderID = userMap[message.SenderID];
-            })
-
-            ejs.renderFile(__dirname + '/conversation_page.ejs', { conversation: allMessages }, (err, html) => {
+        chat.getAllMessagesInConversation(conversationID).then(messages => {
+            let allMessages = JSON.parse(JSON.stringify(messages));
+            ejs.renderFile(__dirname + '/conversation_page.ejs', { messages: allMessages, partner: {username: 'Ivan', icon: 'xx'}, conversationID: conversationID }, (err, html) => {
                 if (err) {
                     console.error('Error rendering template:', err);
                     res.status(500).send('Internal Server Error');
@@ -101,20 +92,19 @@ app.get('/conversation/:conversationId', (req, res) => {
                     res.send(html);
                 }
             });
+
+            // allMessages.forEach(message => {
+            //     message
+            // });
+
+
         })
-        
-        // allMessages.forEach(message => {
-        //     message
-        // });
-        
-        
-        })
-    }catch (err) {
+    } catch (err) {
         console.error('Error fetching messages:', err);
         res.status(500).send('Internal Server Error');
     }
 
-    
+
 });
 
 app.post('/addConvo', (req, res) => {
@@ -140,13 +130,13 @@ app.post('/deleteConvo', (req, res) => {
 })
 
 app.post('/sendMessage/:conversationId', (req, res) => {
-    chat.addMessage(req.params.conversationId, USERID, req.body.Content).then(messageid => {
+    chat.addMessage(req.params.conversationId, loggedInUserID, req.body.Content).then(messageid => {
         if (messageid) {
             chat.getAllMessagesInConversation(1)
-            .then(allMessages => {
-                res.send({ 'messages': allMessages });
-                res.end();
-            });
+                .then(allMessages => {
+                    res.send({ 'messages': allMessages });
+                    res.end();
+                });
         } else {
             console.error('Error fetching messages:', err);
             res.status(500).send('Internal Server Error');
