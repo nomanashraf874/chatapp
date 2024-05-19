@@ -1,11 +1,13 @@
 const path = require('path');
 const express = require('express');
 const chatapp = require('./chatapp');
+const chatbot = require('./chatbot');
 const ejs = require('ejs')
 const app = express();
 const chat = new chatapp();
 var loggedInUserID = -1;
 const CHATBOTUSERID = 1;
+var myChatBot=null
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // to support URL-encoded bodies
@@ -23,16 +25,29 @@ app.get('/logout', (req, res) => {
 });
 
 app.post('/login', (req, res) => {
+    console.log("YIMB");
     chat.login(req.body.username, req.body.password).then(userid => {
         loggedInUserID = userid;
+        console.log("YIMB0");
         if (userid) {
-            res.redirect(`/userPage/0`)
+            myChatBot = new chatbot(userid);
+            myChatBot.setUp()
+                .then(() => {
+                    console.log("YIMB1");
+                    console.log("YIMB",myChatBot.conversationID);
+                    res.redirect(`/userPage/0`)
+                })
+                .catch(error => {
+                    console.error('Error setting up chatbot:', error);
+                    res.status(500).send('Internal Server Error');
+                });
         } else {
             res.status(401);
             res.redirect('/?error=1');
         }
     });
 });
+    
 
 
 app.get('/create_user.html', (req, res) => {
@@ -154,14 +169,23 @@ app.get('/deleteConvo/:conversationID', (req, res) => {
 })
 
 app.post('/sendMessage/:conversationID', (req, res) => {
-    chat.addMessage(req.params.conversationID, loggedInUserID, req.body.Content).then(messageid => {
-        if (messageid) {
-            res.redirect(`/userPage/${req.params.conversationID}`)
-        } else {
-            console.error('Error fetching messages:', err);
-            res.status(500).send('Internal Server Error');
-        }
-    });
+    console.log("YIMB3");
+    console.log("YIMB",myChatBot.conversationID);
+    if (req.params.conversationID == myChatBot.conversationID){
+        myChatBot.chat(req.body.Content)
+            .then(() => {
+                res.redirect(`/userPage/${req.params.conversationID}`);
+            });
+    } else{
+        chat.addMessage(req.params.conversationID, loggedInUserID, req.body.Content).then(messageid => {
+            if (messageid) {
+                res.redirect(`/userPage/${req.params.conversationID}`);
+            } else {
+                console.error('Error fetching messages:', err);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+    }
 });
 
 app.listen(3000);

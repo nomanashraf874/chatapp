@@ -90,17 +90,7 @@ class ChatBot {
 }
 
 
-// Example usage
-(async () => {
-//backend.createUser("chatbot","chatbot@noman.com","chatbot")
-let res = await backend.getAllConversationsForUser(2)
-console.log(res)
-// const myChatBot = new ChatBot(2);
-// await myChatBot.setUp()
-// await myChatBot.chat("yo?");
-// await myChatBot.chat("testing");
-// await myChatBot.chat("exit");
-})();
+module.exports = ChatBot;
 
 
 
