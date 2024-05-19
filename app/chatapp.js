@@ -194,44 +194,69 @@ class ChatAppAPI {
     async getAllConversationsForUser(userID) {
         try {
             const connection = await this.getConnection();
-            // const query = 'SELECT Conversations.* FROM Conversations INNER JOIN User_Conversation ON Conversations.ConversationID = User_Conversation.ConversationID WHERE User_Conversation.UserID = ?';
-            // const query =  `SELECT U.Username, UC.UserID, UC.ConversationID FROM User_Conversation UC 
-            //                 INNER JOIN Users U Using (UserID)
-            //                 WHERE ConversationID IN 
-            //                     (SELECT ConversationID 
-            //                      FROM User_Conversation 
-            //                      WHERE UserID = (?)
-            //                     )
-            //                 AND UserID != (?);`;
-            const query =
-                `WITH LastSent as (
-                    SELECT MAX(sentAt) sentAt, conversationID 
-                    FROM Messages 
-                    GROUP BY conversationID
-                ),
-                LatestMessages as (
-                    SELECT M.content, LS.sentAt, M.conversationID, M.senderID 
-                    FROM Messages M 
-                    INNER JOIN LastSent LS 
-                    USING (sentAt, conversationID)
-                )
-                SELECT U.Username, UC.UserID, UC.ConversationID, LM.content lastSentMessage
-                FROM User_Conversation UC 
-                INNER JOIN Users U Using (UserID)
-                LEFT JOIN LatestMessages LM ON UC.ConversationID = LM.ConversationID
-                WHERE UC.ConversationID IN 
-                    (SELECT ConversationID 
-                    FROM User_Conversation 
-                    WHERE UserID = (?))
-                AND UserID != (?);`;
-            const conversations = await this.query(connection, query, [userID, userID]);
+            // Fetch all conversation IDs and other participant details
+            const queryConversations = `
+                SELECT DISTINCT
+                    UC.ConversationID,
+                    U.UserID,
+                    U.Username
+                FROM User_Conversation UC
+                INNER JOIN Users U ON UC.UserID = U.UserID
+                WHERE UC.ConversationID IN (
+                    SELECT ConversationID
+                    FROM User_Conversation
+                    WHERE UserID = ?
+                ) AND UC.UserID != ?;
+            `;
+            const conversations = await this.query(connection, queryConversations, [userID, userID]);
+            
+            // Prepare to collect last messages for each conversation
+            const results = [];
+    
+            // Fetch last message for each conversation
+            for (const conversation of conversations) {
+                const queryLastMessage = `
+                    SELECT 
+                        Content AS LastSentMessage,
+                        SentAt AS LastMessageTime
+                    FROM Messages
+                    WHERE ConversationID = ? AND SentAt = (
+                        SELECT MAX(SentAt)
+                        FROM Messages
+                        WHERE ConversationID = ?
+                    ) ORDER BY MessageID DESC
+                    LIMIT 1;
+                `;
+                const lastMessage = await this.query(connection, queryLastMessage, [conversation.ConversationID, conversation.ConversationID]);
+                if (lastMessage.length > 0) {
+                    results.push({
+                        ConversationID: conversation.ConversationID,
+                        UserID: conversation.UserID,
+                        Username: conversation.Username,
+                        LastSentMessage: lastMessage[0].LastSentMessage,
+                        LastMessageTime: lastMessage[0].LastMessageTime
+                    });
+                } else {
+                    // Include conversation details even if there's no last message
+                    results.push({
+                        ConversationID: conversation.ConversationID,
+                        UserID: conversation.UserID,
+                        Username: conversation.Username,
+                        LastSentMessage: null,
+                        LastMessageTime: null
+                    });
+                }
+            }
+    
             connection.release();
-            return conversations;
+            return results;
         } catch (error) {
             console.error("Error getting all conversations for user:", error);
+            if (connection) connection.release();
             return [];
         }
     }
+    
 
     async getLastMessageForConversation(conversationID) {
         try {
