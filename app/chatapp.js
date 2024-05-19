@@ -1,5 +1,5 @@
 const mysql = require('mysql');
-
+const CHATBOTUSERID = 1;
 class ChatAppAPI {
     constructor() {
         this.pool = mysql.createPool({
@@ -41,12 +41,28 @@ class ChatAppAPI {
     }
 
     async createUser(username, email, password) {
+        const connection = await this.getConnection();
         try {
-            const connection = await this.getConnection();
+            await connection.beginTransaction();
+
+            //Create new user
             const query = 'INSERT INTO Users (username, email, password) VALUES (?, ?, ?)';
-            await this.query(connection, query, [username, email, password]);
+            const result = await this.query(connection, query, [username, email, password]);
+            const userID = result.insertId;
+            console.log("createuser userid:", userID);
+
+            //Create conversation between user and chatbot
+            const convoID = await this.addConversationHelper(connection, CHATBOTUSERID, userID);
+            console.log("createuser convoID:", convoID);
+            const messageID = await this.addMessageHelper(connection, convoID, CHATBOTUSERID, "Hi, this is your friendly chatbot. What can I do for you today?");
+            console.log("createuser messageID:", messageID);
+
+            await connection.commit();
+
             connection.release();
+            return (userID, convoID);
         } catch (error) {
+            await connection.rollback();
             console.error("Error creating user:", error);
         }
     }
@@ -78,32 +94,42 @@ class ChatAppAPI {
     }
 
     async addConversation(createdByUserID, partnerUserID) {
+        const connection = await this.getConnection();
         try {
-            const connection = await this.getConnection();
+            console.log("addconvo is running");
             // Start a transaction
-            await connection.beginTransaction();
+            // await connection.beginTransaction();
 
-            // Insert into Conversations table
-            const conversationQuery = 'INSERT INTO Conversations (createdByUserID) VALUES (?)';
-            const conversationResult = await this.query(connection, conversationQuery, [createdByUserID]);
-            const conversationID = conversationResult.insertId;
-
-            // Insert into User_Conversation table
-            const userConversationQuery = 'INSERT INTO User_Conversation (UserID, ConversationID) VALUES (?, ?)';
-            await this.query(connection, userConversationQuery, [createdByUserID, conversationID]);
-            await this.query(connection, userConversationQuery, [partnerUserID, conversationID]);
+            const conversationID = await this.addConversationHelper(connection, createdByUserID, partnerUserID);
 
             // Commit the transaction
-            await connection.commit();
+            // await connection.commit();
 
-            connection.release();
+            // connection.release();
             return conversationID;
         } catch (error) {
+            console.log("addconvo error!!", error);
             // Rollback the transaction in case of error
             await connection.rollback();
             console.error("Error adding conversation:", error);
             return null;
         }
+    }
+
+    async addConversationHelper(connection, createdByUserID, partnerUserID) {
+        // Insert into Conversations table
+        const conversationQuery = 'INSERT INTO Conversations (createdByUserID) VALUES (?)';
+        const conversationResult = await this.query(connection, conversationQuery, [createdByUserID]);
+        const conversationID = conversationResult.insertId;
+        console.log("addconvo inserted, convoID", conversationID);
+
+        // Insert into User_Conversation table
+        const userConversationQuery = 'INSERT INTO User_Conversation (UserID, ConversationID) VALUES (?, ?)';
+        await this.query(connection, userConversationQuery, [createdByUserID, conversationID]);
+        await this.query(connection, userConversationQuery, [partnerUserID, conversationID]);
+        console.log("addconvo inserted #2");
+
+        return conversationID;
     }
 
     async deleteConversation(conversationID) {
@@ -141,9 +167,8 @@ class ChatAppAPI {
     async addMessage(conversationID, senderID, content) {
         try {
             const connection = await this.getConnection();
-            const query = 'INSERT INTO Messages (conversationID, senderID, content) VALUES (?, ?, ?)';
-            const result = await this.query(connection, query, [conversationID, senderID, content]);
-            const messageID = result.insertId;
+
+            const messageID = await this.addMessageHelper(connection, conversationID, senderID, content);
 
             connection.release();
             return messageID;
@@ -152,7 +177,14 @@ class ChatAppAPI {
         }
     }
 
-    async hasConversationWith(userID, partnerId) {
+    async addMessageHelper(connection, conversationID, senderID, content) {
+        const query = 'INSERT INTO Messages (conversationID, senderID, content) VALUES (?, ?, ?)';
+        const result = await this.query(connection, query, [conversationID, senderID, content]);
+        const messageID = result.insertId;
+        return messageID;
+    }
+
+    async getConversationID(userID, partnerId) {
         try {
             const connection = await this.getConnection();
             const query = `

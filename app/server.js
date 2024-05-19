@@ -5,6 +5,7 @@ const ejs = require('ejs')
 const app = express();
 const chat = new chatapp();
 var loggedInUserID = -1;
+const CHATBOTUSERID = 1;
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true })); // to support URL-encoded bodies
@@ -25,7 +26,7 @@ app.post('/login', (req, res) => {
     chat.login(req.body.username, req.body.password).then(userid => {
         loggedInUserID = userid;
         if (userid) {
-            res.redirect(`/userPage`)
+            res.redirect(`/userPage/0`)
         } else {
             res.status(401);
             res.redirect('/?error=1');
@@ -43,38 +44,57 @@ app.post('/createUser', (req, res) => {
     chat.createUser(req.body.username, req.body.email, req.body.password);
     res.redirect('/');
 });
-app.get('/userPage', (req, res) => {
+
+app.get('/userPage/:conversationID', (req, res) => {
     try {
         // authenticate user:
         if (loggedInUserID < 0) {
             res.redirect('/?invalidRequest');
             return;
         }
-        // Fetch messages for the authenticated user from the database
-        chat.getAllConversationsForUser(loggedInUserID).then(conversations => {
-            const allConvos = JSON.parse(JSON.stringify(conversations));
-            // console.log(allConvos);
-            chat.getAllOtherUsers(loggedInUserID).then(otherUsers => {
-                console.log(loggedInUserID);
-                ejs.renderFile(__dirname + '/user_page.ejs', { convos: allConvos, users: otherUsers }, (err, html) => {
-                    if (err) {
-                        console.error('Error rendering template:', err);
-                        res.status(500).send('Internal Server Error');
-                    } else {
-                        res.send(html);
-                    }
+
+        var conversationID = req.params.conversationID;
+        chat.getConversationID(CHATBOTUSERID, loggedInUserID).then(convos => {
+            console.log("getconvos, convoID", convos[0].ConversationID);
+            if (conversationID == 0) {
+                conversationID = convos[0].ConversationID;
+            }
+            // Fetch messages for the authenticated user from the database
+            chat.getAllConversationsForUser(loggedInUserID).then(conversations => {
+                console.log('conversations: ', loggedInUserID, conversations)
+                // const allConvos = JSON.parse(JSON.stringify(conversations));
+                chat.getAllOtherUsers(loggedInUserID).then(otherUsers => {
+                    console.log(loggedInUserID);
+                    chat.getAllMessagesInConversation(conversationID).then(messages => {
+                        ejs.renderFile(__dirname + '/user_page.ejs',
+                            {
+                                convos: conversations,
+                                users: otherUsers,
+                                messages: messages,
+                                partner: { username: 'Username', icon: 'pic' },
+                                conversationID: conversationID,
+                                userID: loggedInUserID
+                            }, (err, html) => {
+                                if (err) {
+                                    console.error('Error rendering template:', err);
+                                    res.status(500).send('Internal Server Error');
+                                } else {
+                                    res.send(html);
+                                }
+                            });
+                    });
                 });
             });
-        })
-
-        //Render the messages.ejs template with the fetched messages
-
-    } catch (err) {
+        });
+        } catch (err) {
         console.error('Error fetching messages:', err);
         res.status(500).send('Internal Server Error');
     }
 });
 
+function getConversations(conversationID) {
+
+}
 
 app.get('/conversation/:conversationId', (req, res) => {
     const conversationID = req.params.conversationId;
@@ -83,8 +103,8 @@ app.get('/conversation/:conversationId', (req, res) => {
     //res.send(`Display full conversation for conversation ID: ${conversationId}`);
     try {
         chat.getAllMessagesInConversation(conversationID).then(messages => {
-            let allMessages = JSON.parse(JSON.stringify(messages));
-            ejs.renderFile(__dirname + '/conversation_page.ejs', { messages: allMessages, partner: {username: 'Ivan', icon: 'xx'}, conversationID: conversationID }, (err, html) => {
+            // let allMessages = JSON.parse(JSON.stringify(messages));
+            ejs.renderFile(__dirname + '/conversation_page.ejs', { messages: messages, partner: { username: 'Ivan', icon: 'xx' }, conversationID: conversationID }, (err, html) => {
                 if (err) {
                     console.error('Error rendering template:', err);
                     res.status(500).send('Internal Server Error');
@@ -92,12 +112,6 @@ app.get('/conversation/:conversationId', (req, res) => {
                     res.send(html);
                 }
             });
-
-            // allMessages.forEach(message => {
-            //     message
-            // });
-
-
         })
     } catch (err) {
         console.error('Error fetching messages:', err);
@@ -107,36 +121,42 @@ app.get('/conversation/:conversationId', (req, res) => {
 
 });
 
-app.post('/addConvo', (req, res) => {
-    const UserId = loggedInUserID;
-    const partnerUserID = req.body.partnerId;
-    chat.hasConversationWith(UserId, partnerUserID).then(convoId => {
-        if (convoId.length > 0) {
-            res.redirect(`/conversation/${convoId[0].ConversationID}`);
+app.post('/addConvo/:partnerID', (req, res) => {
+    console.log("add conco");
+    const partnerUserID = req.body.partnerID;
+    console.log("req params", req.params);
+    console.log("req body", req.body);
+    chat.getConversationID(loggedInUserID, partnerUserID).then(convoID => {
+        console.log("convoID", convoID);
+        if (convoID.length > 0) {
+            console.log("in add convo");
+            chat.getAllConversationsForUser(loggedInUserID).then(conversations => {
+                res.redirect(`/userPage/${convoID[0].ConversationID}`);
+            });
         } else {
-            chat.addConversation(UserId, partnerUserID).then(() => {
-                res.redirect(`/userPage`);
+            chat.addConversation(loggedInUserID, partnerUserID).then((conversationID) => {
+                console.log("addconvo convoID: ", conversationID);
+                res.redirect(`/userPage/${conversationID}`);
             });
         }
     })
 })
 
-app.post('/deleteConvo', (req, res) => {
-    const UserId = loggedInUserID;
-    const conversationID = req.body.partnerId;
+app.get('/deleteConvo/:conversationID', (req, res) => {
+    console.log("delete convo:", req.params.conversationID);
+    const conversationID = req.params.conversationID;
     chat.deleteConversation(conversationID).then(() => {
-        res.redirect(`/userPage`);
+        chat.getAllConversationsForUser(loggedInUserID).then(conversations => {
+            console.log("going to redirect");
+            res.redirect(`/userPage/0`);
+        })
     });
 })
 
-app.post('/sendMessage/:conversationId', (req, res) => {
-    chat.addMessage(req.params.conversationId, loggedInUserID, req.body.Content).then(messageid => {
+app.post('/sendMessage/:conversationID', (req, res) => {
+    chat.addMessage(req.params.conversationID, loggedInUserID, req.body.Content).then(messageid => {
         if (messageid) {
-            chat.getAllMessagesInConversation(1)
-                .then(allMessages => {
-                    res.send({ 'messages': allMessages });
-                    res.end();
-                });
+            res.redirect(`/userPage/${req.params.conversationID}`)
         } else {
             console.error('Error fetching messages:', err);
             res.status(500).send('Internal Server Error');

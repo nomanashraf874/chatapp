@@ -1,13 +1,14 @@
+// const ejs = require('ejs')
+baseUrl = 'http://localhost:3000';
+
 // Modal functionality
 class UserPage {
     modal = document.getElementById("myModal");
-    userID = window.location.pathname.split("/")[2];
     constructor() {
         this.initialize();
     }
 
     initialize() {
-        console.log(this.userID);
         
         
         const closeButton = document.getElementsByClassName("close")[0];
@@ -19,25 +20,50 @@ class UserPage {
                 this.modal.style.display = "none";
             }
         }.bind(this);
+
         // Get the button that opens the add conversation modal and add a click event
         const addConversationModal = document.getElementById("addConversationModal");
         addConversationModal.onclick = function () {
-            this.openModal("Enter User ID of who you want to talk to", "addConvo");
-        }.bind(this);
-        // Get the button that opens the delete conversation modal and add a click event
-        const deleteConversationModal = document.getElementById("deleteConversationModal");
-        deleteConversationModal.onclick = function () {
-            this.openModal("Enter Conversation ID to delete", "deleteConvo");
+            const partnerID = document.getElementById('partners').value;
+            console.log("addconvomodal partnerid", partnerID);
+            this.modal.style.display = "block";
+            const label = document.getElementById('labelForConversation');
+            label.innerHTML = "Choose a user to start a conversation with";
+            const modalForm = document.getElementById('addConversation');
+            modalForm.action = `/addConvo/${partnerID}`;
         }.bind(this);
     }
 
-    openModal(modalText, modalAction) {
-        this.modal.style.display = "block";
-        const label = document.getElementById('labelForConversation');
-        label.innerHTML = modalText;
-        const modalForm = document.getElementById('addConversation');
-        modalForm.action = `/${modalAction}/${this.userID}`;
+    deleteMessage(conversationID) {
+        fetch(`${baseUrl}/deleteConvo/${conversationID}`, {method: "delete"})
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`HTTP error! Status: ${res.status}`);
+                }
+                return res.text();
+            })
+            // .then(html => {
+            //     document.getElementById('chat-container').innerHTML = html;
+            // });
     }
+
+    // addConvoWith() {
+    //     const partnerID = document.getElementById('partners').value;
+    //     console.log("parnterID:", `${baseUrl}/addConvo/${partnerID}`);
+    //     fetch(`${baseUrl}/addConvo/${partnerID}`, {method: "post"})
+    //         .then(res => {
+    //             console.log("addconvowith() res: ", res);
+    //             if (!res.ok) {
+    //                 throw new Error(`HTTP error! Status: ${res.status}`);
+    //             }
+    //             return res.text();
+    //         })
+    //         .then(html => {
+    //             console.log("addconvowith() html: ", html);
+    //             document.getElementById('chat-container').innerHTML = html;
+    //         });
+    // }
+    
     
 }
 

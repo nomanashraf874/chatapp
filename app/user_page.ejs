@@ -1,27 +1,3 @@
-<!-- <!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Chat Page</title>
-    <link rel="stylesheet" href="/css/user_page.css">
-</head>
-<body>
-    <div class="menu-bar">
-        <ul>
-            <li><a href="user_page.html">Messages</a></li>
-            <li><a href="#">AI CHATBOT</a></li>
-            <li><a href="#">LOG OUT</a></li>
-        </ul>
-    </div>
-    <div id="chat-container" style="border:1px solid red;">
-        
-    </div>
-
-
-
-</body>
-</html> -->
 <!DOCTYPE html>
 <html lang="en">
 
@@ -29,19 +5,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Messages</title>
-    <!-- <style>
-        /* Add your CSS styles here */
-        body {
-            font-family: Arial, sans-serif;
-        }
-        .message {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin-bottom: 10px;
-        }
-    </style> -->
     <link rel="stylesheet" href="/css/user_page.css">
+    <link rel="stylesheet" href="/css/conversation_page.css">
     <script src="/js/user_page.js" defer></script>
+
 </head>
 
 <body>
@@ -51,17 +18,20 @@
             <li><a href="#">AI CHATBOT</a></li>
             <li><a href="/logout">LOG OUT</a></li>
             <button id="addConversationModal">Add Conversation</button>
-            <button id="deleteConversationModal">Delete Conversation</button>
+            <!-- <button id="deleteConversationModal">Delete Conversation</button> -->
 
         </ul>
+    </div>
+    <div>
+        UserID: <%- userID %> 
     </div>
     <div id="myModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <form id="addConversation" method="post" action="/">
+            <form id="addConversation"  method="post" action="/">
                 <div class="form-group">
-                    <label for="messageTitle" id="labelForConversation">Title</label>
-                    <select id="messageTitle" name="partnerId" required>
+                    <label for="partners" id="labelForConversation">Title</label>
+                    <select id="partners" name="partnerID" required>
                         <% users.forEach(user=> { %>
                             <option value= <%= user.UserID %> >
                                 <%= user.Username %>
@@ -77,13 +47,20 @@
     </div>
     <div id="chat-container" style="border:1px solid red;">
         <% convos.forEach(convo=> { %>
-            <div class="convo">
-                <li><a class = 'conversations'href="/conversation/<%= convo.ConversationID %>">
-                        <%= convo.Username %>
-                    </a></li>
-            </div>
+            <ul class="convo">
+                <li>
+                    <a href="/userPage/<%= convo.ConversationID %>">
+                        <%= convo.Username %> : &emsp; <%= convo.LastSentMessage %>
+                    </a>
+                    <a class="delete-button" href="/deleteConvo/<%= convo.ConversationID %>" >
+                        <img src="/assets/trashcan.png">
+                    </a>
+                </li>
+            </ul>
         <% }); %>
-
+    </div>
+    <div id="message-container">
+        <%- include ('conversation_page', { messages: messages, partner: partner, conversationID: conversationID }); %>
     </div>
     
 </body>
