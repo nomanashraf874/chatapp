@@ -1,11 +1,30 @@
 const path = require('path');
 const express = require('express');
+// const socket = require("socket.io");
+const ejs = require('ejs');
+// const http = require("http");
+// const fs  = require("fs");
+const session = require("express-session");
+const cookieParser = require("cookie-parser");
+
 const chatapp = require('./chatapp');
 const chatbot = require('./chatbot');
-const ejs = require('ejs')
+
+const PORT = 3000;
+
+
 const app = express();
 const chat = new chatapp();
-var loggedInUserID = -1;
+
+app.use(cookieParser());
+
+app.use(session({
+    secret: String(Math.random()),
+    saveUninitialized: true,
+    resave: true
+}));
+
+// var loggedInUserID = -1;
 const CHATBOTUSERID = 1;
 var myChatBot=null
 
@@ -15,26 +34,29 @@ app.use(express.urlencoded({ extended: true })); // to support URL-encoded bodie
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 
+// console.log('app.get loggedInUserID:', req.session.userID);
+
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/login_page.html');
 });
 
 app.get('/logout', (req, res) => {
-    loggedInUserID = -1;
+    req.session.destroy();
+    // app.set('loggedInUserID', -1);
     res.redirect('/');
 });
 
 app.post('/login', (req, res) => {
-    console.log("YIMB");
     chat.login(req.body.username, req.body.password).then(userid => {
-        loggedInUserID = userid;
-        console.log("YIMB0");
+        req.session.userID = userid;
+        req.session.lastSentAt = 0;
+        req.session.refreshIntervalId = 0;
+        req.session.lastConnectionCheck = 0;
+        req.session.save();
         if (userid) {
             myChatBot = new chatbot(userid);
             myChatBot.setUp()
                 .then(() => {
-                    console.log("YIMB1");
-                    console.log("YIMB",myChatBot.conversationID);
                     res.redirect(`/userPage/0`)
                 })
                 .catch(error => {
@@ -63,23 +85,22 @@ app.post('/createUser', (req, res) => {
 app.get('/userPage/:conversationID', (req, res) => {
     try {
         // authenticate user:
-        if (loggedInUserID < 0) {
+        if (!req.session.userID) {
             res.redirect('/?invalidRequest');
             return;
         }
 
         var conversationID = req.params.conversationID;
-        chat.getConversationID(CHATBOTUSERID, loggedInUserID).then(convos => {
-            console.log("getconvos, convoID", convos[0].ConversationID);
+        chat.getConversationID(CHATBOTUSERID, req.session.userID).then(convos => {
             if (conversationID == 0) {
                 conversationID = convos[0].ConversationID;
             }
             // Fetch messages for the authenticated user from the database
-            chat.getAllConversationsForUser(loggedInUserID).then(conversations => {
-                console.log('conversations: ', loggedInUserID, conversations)
+            chat.getAllConversationsForUser(req.session.userID).then(conversations => {
+                // console.log('conversations: ', req.session.userID, conversations)
                 // const allConvos = JSON.parse(JSON.stringify(conversations));
-                chat.getAllOtherUsers(loggedInUserID).then(otherUsers => {
-                    console.log(loggedInUserID);
+                chat.getAllOtherUsers(req.session.userID).then(otherUsers => {
+                    // console.log(req.session.userID);
                     chat.getAllMessagesInConversation(conversationID).then(messages => {
                         ejs.renderFile(__dirname + '/user_page.ejs',
                             {
@@ -88,7 +109,7 @@ app.get('/userPage/:conversationID', (req, res) => {
                                 messages: messages,
                                 partner: { username: 'Username', icon: 'pic' },
                                 conversationID: conversationID,
-                                userID: loggedInUserID
+                                userID: req.session.userID
                             }, (err, html) => {
                                 if (err) {
                                     console.error('Error rendering template:', err);
@@ -137,20 +158,20 @@ app.get('/conversation/:conversationId', (req, res) => {
 });
 
 app.post('/addConvo/:partnerID', (req, res) => {
-    console.log("add conco");
+    // console.log("add conco");
     const partnerUserID = req.body.partnerID;
-    console.log("req params", req.params);
-    console.log("req body", req.body);
-    chat.getConversationID(loggedInUserID, partnerUserID).then(convoID => {
-        console.log("convoID", convoID);
+    // console.log("req params", req.params);
+    // console.log("req body", req.body);
+    chat.getConversationID(req.session.userID, partnerUserID).then(convoID => {
+        // console.log("convoID", convoID);
         if (convoID.length > 0) {
-            console.log("in add convo");
-            chat.getAllConversationsForUser(loggedInUserID).then(conversations => {
+            // console.log("in add convo");
+            chat.getAllConversationsForUser(req.session.userID).then(conversations => {
                 res.redirect(`/userPage/${convoID[0].ConversationID}`);
             });
         } else {
-            chat.addConversation(loggedInUserID, partnerUserID).then((conversationID) => {
-                console.log("addconvo convoID: ", conversationID);
+            chat.addConversation(req.session.userID, partnerUserID).then((conversationID) => {
+                // console.log("addconvo convoID: ", conversationID);
                 res.redirect(`/userPage/${conversationID}`);
             });
         }
@@ -161,7 +182,7 @@ app.get('/deleteConvo/:conversationID', (req, res) => {
     console.log("delete convo:", req.params.conversationID);
     const conversationID = req.params.conversationID;
     chat.deleteConversation(conversationID).then(() => {
-        chat.getAllConversationsForUser(loggedInUserID).then(conversations => {
+        chat.getAllConversationsForUser(req.session.userID).then(conversations => {
             console.log("going to redirect");
             res.redirect(`/userPage/0`);
         })
@@ -169,23 +190,150 @@ app.get('/deleteConvo/:conversationID', (req, res) => {
 })
 
 app.post('/sendMessage/:conversationID', (req, res) => {
-    console.log("YIMB3");
-    console.log("YIMB",myChatBot.conversationID);
+    // console.log("YIMB3");
+    // console.log("YIMB",myChatBot.conversationID);
     if (req.params.conversationID == myChatBot.conversationID){
         myChatBot.chat(req.body.Content)
             .then(() => {
                 res.redirect(`/userPage/${req.params.conversationID}`);
             });
     } else{
-        chat.addMessage(req.params.conversationID, loggedInUserID, req.body.Content).then(messageid => {
+    // console.log("got chat message: ", req.body.Content);
+    chat.addMessage(req.params.conversationID, req.session.userID, req.body.Content).then(messageid => {
             if (messageid) {
                 res.redirect(`/userPage/${req.params.conversationID}`);
             } else {
-                console.error('Error fetching messages:', err);
-                res.status(500).send('Internal Server Error');
+                console.log('Error fetching messages');
+                // res.status(500).send('Internal Server Error');
             }
         });
     }
 });
 
-app.listen(3000);
+const EXPIRED_INTERVAL = 59999; // 60 secs
+// chat.getLatestMessageForUser(req.session.userID).then(latestMessages => {
+//     // Assuming there's at least one conversation in the database
+//     req.session.lastSentAt = latestMessages[0].sentAt;
+//     console.log("start with last message sent:", req.session.lastSentAt, "last expired:", req.session.lastConnectionCheck);
+// });
+
+app.get('/checkMessage', (req, res) => {
+    // console.log(req.session.userID, "new request to poll");
+    req.session.lastConnectionCheck = new Date().getTime();
+    clearInterval(req.session.refreshIntervalId);
+    checkMessage(req, res);
+});
+
+function checkMessage(req, res) {
+    chat.getLatestMessageForUser(req.session.userID).then(latestMessage => {
+        const currentTime = new Date().getTime();
+        const latestSentAt = latestMessage[0].SentAt;
+        // console.log(req.session.userID, "getting last message:", latestSentAt, "lastSentAt:", req.session.lastSentAt);
+        if (req.session.lastSentAt == 0){
+            // console.log(req.session.userID, "initializing lastSentAt");
+            req.session.lastSentAt = latestMessage[0].SentAt;
+            req.session.refreshIntervalId = setTimeout(function() { checkMessage(req, res) }, 2000);
+        } else if (latestSentAt != req.session.lastSentAt) {
+            // console.log(req.session.userID, "found a new message! latest: [", latestMessage[0].sentAt, "] lastSentAt: [", req.session.lastSentAt, currentTime, "]", typeof(latestSentAt));
+            req.session.lastSentAt = latestMessage[0].SentAt;
+            res.send(200, {'polling': 'FOUND'});
+            // res.end();
+        } else if (currentTime - req.session.lastConnectionCheck >= EXPIRED_INTERVAL) {
+            // console.log(req.session.userID, "expired connection.... Restarting now: ", currentTime);
+            res.send(200, {'polling': 'EXPIRED'});
+            // res.end();
+            req.session.lastConnectionCheck = currentTime;
+        } else {
+            // console.log(req.session.userID, "continue pollin...", latestSentAt);
+            req.session.refreshIntervalId = setTimeout(function() { checkMessage(req, res) }, 2000);
+        }
+    })
+    // todo: check if a new message
+    // if (date-request.socket._idleStart.getTime() > 59999) {
+    //     console.log("checkMessage: time expired...!");
+    //     res.writeHead(200, {
+    //         'Content-Type'   : 'text/plain',
+    //         'Access-Control-Allow-Origin' : '*'
+    //     });
+    // }
+
+    // check if new message for current user
+    // return response
+    // if time now > 59999 -> EXPIRED
+    // if (counter > 5) {
+    //     counter = 0;
+    //     res.write('FOUND!', 'utf8');
+    //     res.end();
+    // } else {
+    //     setTimeout(function() { checkMessage(req, res) }, 2000);
+    // }
+
+    // // we check the information from the file, especially
+
+    // // to know when it was changed for the last time
+    // fs.stat('/polling', function(err, stats) {
+    //     console.log("checkMessage: file has changed...!");
+    //     // if the file is changed
+    //     if (stats.mtime.getTime() > req.socket._idleStart.getTime()) { 
+    //         // read it
+    //         fs.readFile('/polling', 'utf8', function(err, data) {        
+    //             // return the contents
+    //             res.writeHead(200, {
+    //                 'Content-Type'   : 'text/plain',
+    //                 'Access-Control-Allow-Origin' : '*'
+    //             });
+                
+    //             // return response
+    //             res.write(data, 'utf8');
+    //             res.end();
+                
+    //             // return    
+    //             return false;
+    //         });
+    //     }
+    // });
+
+};
+
+app.listen(PORT);
+// const server = app.listen(PORT, function () {
+//     console.log(`app: Listening on port ${PORT}`);
+//     console.log(`app: http://localhost:${PORT}`);
+// });
+
+// // Socket setup
+// const activeUsers = new Set();
+// // const io = socket(server);
+// const io = socket(server, {
+//     cors: {
+//         origin: "http://localhost:3000",
+//         methods: ["GET", "POST"],
+//         transports: ['websocket', 'polling'],
+//         credentials: true
+//     },
+//     allowEIO3: true
+// });
+
+
+// io.on("connection", function (socket) {
+//     console.log("io: Made socket connection");
+
+//     socket.on("new user", function (data) {
+//     socket.userId = data;
+//         activeUsers.add(data);
+//         io.emit("new user", [...activeUsers]);
+//     });
+
+//     socket.on("chat message", function (data) {
+//         console.log("io: got: chat message!!!!");
+//         // socket.userId = data;
+//         // activeUsers.add(data);
+//         // io.emit("refresh", [...activeUsers]);
+//         io.emit("refresh", data);
+//     });
+
+//     socket.on("disconnect", () => {
+//         activeUsers.delete(socket.userId);
+//         io.emit("user disconnected", socket.userId);
+//     });
+// });

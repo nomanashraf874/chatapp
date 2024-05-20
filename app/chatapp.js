@@ -8,7 +8,8 @@ class ChatAppAPI {
             user: 'admin',
             password: 'chatapp123',
             database: 'Chat_App',
-            port: 3306
+            port: 3306,
+            dateStrings: true
         });
     }
 
@@ -242,10 +243,10 @@ class ChatAppAPI {
                 ) AND UC.UserID != ?;
             `;
             const conversations = await this.query(connection, queryConversations, [userID, userID]);
-            
+
             // Prepare to collect last messages for each conversation
             const results = [];
-    
+
             // Fetch last message for each conversation
             for (const conversation of conversations) {
                 const queryLastMessage = `
@@ -282,7 +283,7 @@ class ChatAppAPI {
                     });
                 }
             }
-    
+
             connection.release();
             return results;
         } catch (error) {
@@ -291,7 +292,7 @@ class ChatAppAPI {
             return [];
         }
     }
-    
+
 
     async getLastMessageForConversation(conversationID) {
         try {
@@ -300,6 +301,28 @@ class ChatAppAPI {
             const lastMessage = await this.query(connection, query, [conversationID]);
             connection.release();
             return lastMessage[0];
+        } catch (error) {
+            console.error("Error getting last message for conversation:", error);
+            return null;
+        }
+    }
+
+    async getLatestMessageForUser(userID) {
+        // Gets the last message sent to userID
+        try {
+            const connection = await this.getConnection();
+            // const query = 'SELECT MAX(sentAt) sentAt, conversationID FROM Messages';
+            const query = `
+                SELECT MAX(SentAt) AS SentAt FROM Messages
+                WHERE SenderID != (?)
+                AND ConversationID IN (
+                    SELECT ConversationID FROM User_Conversation
+                    WHERE UserID = (?)
+                )`;
+            const lastMessage = await this.query(connection, query, [userID, userID]);
+            console.log("lastmessage:", lastMessage);
+            connection.release();
+            return lastMessage;
         } catch (error) {
             console.error("Error getting last message for conversation:", error);
             return null;

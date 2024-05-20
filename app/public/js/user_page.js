@@ -10,7 +10,14 @@ class UserPage {
 
     initialize() {
         
+        console.log("initialize");
         
+        // const socket = io({
+        //     allowEIO3: true // false by default
+        // });
+        
+        // console.log("initialize, created socket> ", socket);
+
         const closeButton = document.getElementsByClassName("close")[0];
         closeButton.onclick = function () {
             this.modal.style.display = "none";
@@ -32,6 +39,25 @@ class UserPage {
             const modalForm = document.getElementById('addConversation');
             modalForm.action = `/addConvo/${partnerID}`;
         }.bind(this);
+
+        // const sendMessageEl = document.getElementById("message-submit-button");
+        // console.log("get message button:", sendMessageEl);
+        // sendMessageEl.onclick = function () {
+        //     console.log("emit message to socket!");
+        //     socket.emit("chat message", {});
+        //     io.emit("chat message", {});
+        //     socket.emit("chat message", { msg: "strange" });
+        //     io.emit("chat message", { msg: "strange" });
+        // }.bind(this);
+
+        // socket.on("refresh", (event) => { 
+        //     console.log("refresh on client. data:", event.data);
+        //     if (event.data == 'refresh') {
+        //         // location.reload();
+        //     }
+        // });
+        
+        // socket.emit("new user", "john doe");
     }
 
     deleteMessage(conversationID) {
@@ -63,9 +89,31 @@ class UserPage {
     //             document.getElementById('chat-container').innerHTML = html;
     //         });
     // }
-    
-    
+
+    pollNode() {
+        console.log("now polling...");
+        const delayInMilliseconds = 1000; //1 second
+
+        fetch(`${baseUrl}/checkMessage`)
+            .then(res => {
+                if (res.ok) {
+                    return res.json();
+                } else {
+                    throw new Error(`HTTP error! Status: ${res.status}`);
+                }
+            })
+            .then(data =>
+                {
+                console.log("polling responded with res:...", data);
+                if (data.polling == 'FOUND') {
+                    location.reload();
+                } 
+                this.pollNode();                                
+            });
+    }
 }
 
+console.log("new userPage");
 const userPage = new UserPage();
+userPage.pollNode();
 

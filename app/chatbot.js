@@ -38,7 +38,7 @@ class ChatBot {
       });
       return response.message.content;
     } catch (error) {
-      console.error(`An error occurred: ${error}`);
+      console.error(`Chatbot> getResponse> An error occurred: ${error}`);
       return "Sorry, I can't respond right now.";
     }
   }

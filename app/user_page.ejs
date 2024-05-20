@@ -7,6 +7,7 @@
     <title>User Messages</title>
     <link rel="stylesheet" href="/css/user_page.css">
     <link rel="stylesheet" href="/css/conversation_page.css">
+    <link rel="icon" type="image/x-icon" href="/assets/defaultProfilePic.png">
     <script src="/js/user_page.js" defer></script>
 
 </head>
@@ -64,6 +65,7 @@
         <%- include ('conversation_page', { messages: messages, partner: partner, conversationID: conversationID }); %>
     </div>
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.3.0/socket.io.js"></script>
 </body>
 
 </html>
