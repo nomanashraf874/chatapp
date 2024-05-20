@@ -50,6 +50,7 @@
             <ul class="convo">
                 <li>
                     <a href="/userPage/<%= convo.ConversationID %>">
+                        <img src="<%= convo.ProfilePicture %>">
                         <%= convo.Username %> : &emsp; <%= convo.LastSentMessage %>
                     </a>
                     <a class="delete-button" href="/deleteConvo/<%= convo.ConversationID %>" >

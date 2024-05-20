@@ -231,7 +231,8 @@ class ChatAppAPI {
                 SELECT DISTINCT
                     UC.ConversationID,
                     U.UserID,
-                    U.Username
+                    U.Username,
+                    U.ProfilePicture
                 FROM User_Conversation UC
                 INNER JOIN Users U ON UC.UserID = U.UserID
                 WHERE UC.ConversationID IN (
@@ -265,6 +266,7 @@ class ChatAppAPI {
                         ConversationID: conversation.ConversationID,
                         UserID: conversation.UserID,
                         Username: conversation.Username,
+                        ProfilePicture: conversation.ProfilePicture,
                         LastSentMessage: lastMessage[0].LastSentMessage,
                         LastMessageTime: lastMessage[0].LastMessageTime
                     });
@@ -274,6 +276,7 @@ class ChatAppAPI {
                         ConversationID: conversation.ConversationID,
                         UserID: conversation.UserID,
                         Username: conversation.Username,
+                        ProfilePicture: conversation.ProfilePicture,
                         LastSentMessage: null,
                         LastMessageTime: null
                     });
